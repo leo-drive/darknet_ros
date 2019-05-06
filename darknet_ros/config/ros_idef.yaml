@@ -1,7 +1,7 @@
 subscribers:
 
   camera_reading:
-    topic: /undistort_image/camera/undistort_image
+    topic: /camera/undistort_image
     queue_size: 1
 
 actions:
