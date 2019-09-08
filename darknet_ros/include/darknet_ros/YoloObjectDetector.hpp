@@ -40,9 +40,11 @@
 
 // Darknet.
 #ifdef GPU
+
 #include "cuda_runtime.h"
 #include "curand.h"
 #include "cublas_v2.h"
+
 #endif
 
 extern "C" {
@@ -57,195 +59,193 @@ extern "C" {
 #include <sys/time.h>
 }
 
-extern "C" void ipl_into_image(IplImage* src, image im);
-extern "C" image ipl_to_image(IplImage* src);
+extern "C" void ipl_into_image(IplImage *src, image im);
+extern "C" image ipl_to_image(IplImage *src);
 extern "C" void show_image_cv(image p, const char *name, IplImage *disp);
 
 namespace darknet_ros {
 
 //! Bounding box of the detected object.
-typedef struct
-{
-  float x, y, w, h, prob;
-  int num, Class;
-} RosBox_;
+  typedef struct {
+    float x, y, w, h, prob;
+    int num, Class;
+  } RosBox_;
 
-typedef struct
-{
-  IplImage* image;
-  std_msgs::Header header;
-} IplImageWithHeader_;
+  typedef struct {
+    IplImage *image;
+    std_msgs::Header header;
+  } IplImageWithHeader_;
 
-class YoloObjectDetector
-{
- public:
-  /*!
-   * Constructor.
-   */
-  explicit YoloObjectDetector(ros::NodeHandle nh);
+  class YoloObjectDetector {
+  public:
+    /*!
+     * Constructor.
+     */
+    explicit YoloObjectDetector(ros::NodeHandle nh);
 
-  /*!
-   * Destructor.
-   */
-  ~YoloObjectDetector();
+    /*!
+     * Destructor.
+     */
+    ~YoloObjectDetector();
 
- private:
-  /*!
-   * Reads and verifies the ROS parameters.
-   * @return true if successful.
-   */
-  bool readParameters();
+  private:
+    /*!
+     * Reads and verifies the ROS parameters.
+     * @return true if successful.
+     */
+    bool readParameters();
 
-  /*!
-   * Initialize the ROS connections.
-   */
-  void init();
+    /*!
+     * Initialize the ROS connections.
+     */
+    void init();
 
-  /*!
-   * Callback of camera.
-   * @param[in] msg image pointer.
-   */
-  void cameraCallback(const sensor_msgs::ImageConstPtr& msg);
+    /*!
+     * Callback of camera.
+     * @param[in] msg image pointer.
+     */
+    void cameraCallback(const sensor_msgs::ImageConstPtr &msg);
 
-  /*!
-   * Check for objects action goal callback.
-   */
-  void checkForObjectsActionGoalCB();
+    /*!
+     * Check for objects action goal callback.
+     */
+    void checkForObjectsActionGoalCB();
 
-  /*!
-   * Check for objects action preempt callback.
-   */
-  void checkForObjectsActionPreemptCB();
+    /*!
+     * Check for objects action preempt callback.
+     */
+    void checkForObjectsActionPreemptCB();
 
-  /*!
-   * Check if a preempt for the check for objects action has been requested.
-   * @return false if preempt has been requested or inactive.
-   */
-  bool isCheckingForObjects() const;
+    /*!
+     * Check if a preempt for the check for objects action has been requested.
+     * @return false if preempt has been requested or inactive.
+     */
+    bool isCheckingForObjects() const;
 
-  /*!
-   * Publishes the detection image.
-   * @return true if successful.
-   */
-  bool publishDetectionImage(const cv::Mat& detectionImage);
+    /*!
+     * Publishes the detection image.
+     * @return true if successful.
+     */
+    bool publishDetectionImage(const cv::Mat &detectionImage);
 
-  //! Typedefs.
-  typedef actionlib::SimpleActionServer<darknet_ros_msgs::CheckForObjectsAction> CheckForObjectsActionServer;
-  typedef std::shared_ptr<CheckForObjectsActionServer> CheckForObjectsActionServerPtr;
+    //! Typedefs.
+    typedef actionlib::SimpleActionServer<darknet_ros_msgs::CheckForObjectsAction> CheckForObjectsActionServer;
+    typedef std::shared_ptr<CheckForObjectsActionServer> CheckForObjectsActionServerPtr;
 
-  //! ROS node handle.
-  ros::NodeHandle nodeHandle_;
+    //! ROS node handle.
+    ros::NodeHandle nodeHandle_;
 
-  //! Class labels.
-  int numClasses_;
-  std::vector<std::string> classLabels_;
+    //! Class labels.
+    int numClasses_;
+    std::vector<std::string> classLabels_;
 
-  //! Check for objects action server.
-  CheckForObjectsActionServerPtr checkForObjectsActionServer_;
+    //! Check for objects action server.
+    CheckForObjectsActionServerPtr checkForObjectsActionServer_;
 
-  //! Advertise and subscribe to image topics.
-  image_transport::ImageTransport imageTransport_;
+    //! Advertise and subscribe to image topics.
+    image_transport::ImageTransport imageTransport_;
 
-  //! ROS subscriber and publisher.
-  image_transport::Subscriber imageSubscriber_;
-  ros::Publisher objectPublisher_;
-  ros::Publisher boundingBoxesPublisher_;
+    //! ROS subscriber and publisher.
+    image_transport::Subscriber imageSubscriber_;
+    ros::Publisher objectPublisher_;
+    ros::Publisher boundingBoxesPublisher_;
 
-  //! Detected objects.
-  std::vector<std::vector<RosBox_> > rosBoxes_;
-  std::vector<int> rosBoxCounter_;
-  darknet_ros_msgs::BoundingBoxes boundingBoxesResults_;
+    //! Detected objects.
+    std::vector<std::vector<RosBox_> > rosBoxes_;
+    std::vector<int> rosBoxCounter_;
+    darknet_ros_msgs::BoundingBoxes boundingBoxesResults_;
 
-  //! Camera related parameters.
-  int frameWidth_;
-  int frameHeight_;
+    //! Camera related parameters.
+    int frameWidth_;
+    int frameHeight_;
 
-  //! Publisher of the bounding box image.
-  ros::Publisher detectionImagePublisher_;
+    //! Publisher of the bounding box image.
+    ros::Publisher detectionImagePublisher_;
 
-  // Yolo running on thread.
-  std::thread yoloThread_;
+    // Yolo running on thread.
+    std::thread yoloThread_;
 
-  // Darknet.
-  char **demoNames_;
-  image **demoAlphabet_;
-  int demoClasses_;
+    // Darknet.
+    char **demoNames_;
+    image **demoAlphabet_;
+    int demoClasses_;
 
-  network *net_;
-  std_msgs::Header headerBuff_[3];
-  image buff_[3];
-  image buffLetter_[3];
-  int buffId_[3];
-  int buffIndex_ = 0;
-  IplImage * ipl_;
-  float fps_ = 0;
-  float demoThresh_ = 0;
-  float demoHier_ = .5;
-  int running_ = 0;
+    network *net_;
+    std_msgs::Header headerBuff_[3];
+    image buff_[3];
+    image buffLetter_[3];
+    int buffId_[3];
+    int buffIndex_ = 0;
+    IplImage *ipl_;
+    float fps_ = 0;
+    float demoThresh_ = 0;
+    float demoHier_ = .5;
+    int running_ = 0;
 
-  int demoDelay_ = 0;
-  int demoFrame_ = 3;
-  float **predictions_;
-  int demoIndex_ = 0;
-  int demoDone_ = 0;
-  float *lastAvg2_;
-  float *lastAvg_;
-  float *avg_;
-  int demoTotal_ = 0;
-  double demoTime_;
+    int demoDelay_ = 0;
+    int demoFrame_ = 3;
+    float **predictions_;
+    int demoIndex_ = 0;
+    int demoDone_ = 0;
+    float *lastAvg2_;
+    float *lastAvg_;
+    float *avg_;
+    int demoTotal_ = 0;
+    double demoTime_;
+    int gpu_number_{0};
 
-  RosBox_ *roiBoxes_;
-  bool viewImage_;
-  bool enableConsoleOutput_;
-  int waitKeyDelay_;
-  int fullScreen_;
-  char *demoPrefix_;
+    RosBox_ *roiBoxes_;
+    bool viewImage_;
+    bool enableConsoleOutput_;
+    int waitKeyDelay_;
+    int fullScreen_;
+    char *demoPrefix_;
 
-  std_msgs::Header imageHeader_;
-  cv::Mat camImageCopy_;
-  boost::shared_mutex mutexImageCallback_;
+    std_msgs::Header imageHeader_;
+    cv::Mat camImageCopy_;
+    boost::shared_mutex mutexImageCallback_;
 
-  bool imageStatus_ = false;
-  boost::shared_mutex mutexImageStatus_;
+    bool imageStatus_ = false;
+    boost::shared_mutex mutexImageStatus_;
 
-  bool isNodeRunning_ = true;
-  boost::shared_mutex mutexNodeStatus_;
+    bool isNodeRunning_ = true;
+    boost::shared_mutex mutexNodeStatus_;
 
-  int actionId_;
-  boost::shared_mutex mutexActionStatus_;
+    int actionId_;
+    boost::shared_mutex mutexActionStatus_;
 
-  // double getWallTime();
+    // double getWallTime();
 
-  int sizeNetwork(network *net);
+    int sizeNetwork(network *net);
 
-  void rememberNetwork(network *net);
+    void rememberNetwork(network *net);
 
-  detection *avgPredictions(network *net, int *nboxes);
+    detection *avgPredictions(network *net, int *nboxes);
 
-  void *detectInThread();
+    void *detectInThread();
 
-  void *fetchInThread();
+    void *fetchInThread();
 
-  void *displayInThread(void *ptr);
+    void *displayInThread(void *ptr);
 
-  void *displayLoop(void *ptr);
+    void *displayLoop(void *ptr);
 
-  void *detectLoop(void *ptr);
+    void *detectLoop(void *ptr);
 
-  void setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,
-                    char **names, int classes,
-                    int delay, char *prefix, int avg_frames, float hier, int w, int h,
-                    int frames, int fullscreen);
+    void setupNetwork(char *cfgfile, char *weightfile, char *datafile, float thresh,
+                      char **names, int classes,
+                      int delay, char *prefix, int avg_frames, float hier, int w, int h,
+                      int frames, int fullscreen);
 
-  void yolo();
+    void yolo();
 
-  IplImageWithHeader_ getIplImageWithHeader();
+    IplImageWithHeader_ getIplImageWithHeader();
 
-  bool getImageStatus(void);
+    bool getImageStatus(void);
 
-  bool isNodeRunning(void);
+    bool isNodeRunning(void);
 
-  void *publishInThread();
-};
+    void *publishInThread();
+  };
 
 } /* namespace darknet_ros*/

@@ -4,11 +4,13 @@
   
   <!-- Use YOLOv3 -->
   <arg name="network_param_file"         default="$(find darknet_ros)/config/yolov3.yaml"/>
+  <arg name="yolo_gpu_number"         default="0"/>
 
 
   <!-- Include main launch file -->
   <include file="$(find darknet_ros)/launch/darknet_ros.launch">
     <arg name="network_param_file"    value="$(arg network_param_file)"/>
+    <arg name="yolo_gpu_number"    value="$(arg yolo_gpu_number)"/>
   </include>
 
 </launch>
